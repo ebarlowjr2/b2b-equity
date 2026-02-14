@@ -143,6 +143,18 @@ export default function AppPage() {
             >
               New problem post
             </a>
+            <a
+              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+              href="/app/market"
+            >
+              Browse market
+            </a>
+            <a
+              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+              href="/app/deals"
+            >
+              View deals
+            </a>
           </div>
         </section>
 
