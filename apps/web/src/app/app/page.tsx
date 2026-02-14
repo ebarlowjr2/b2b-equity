@@ -21,6 +21,17 @@ export default function AppPage() {
         return;
       }
 
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+
+      if (!profile) {
+        router.replace("/onboarding");
+        return;
+      }
+
       setEmail(data.session.user.email ?? null);
       setChecking(false);
     };

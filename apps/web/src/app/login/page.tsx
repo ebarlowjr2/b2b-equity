@@ -40,7 +40,12 @@ export default function LoginPage() {
     }
 
     if (mode === "signup") {
-      setMessage("Check your email for a confirmation link.");
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        router.push("/onboarding");
+      } else {
+        setMessage("Check your email for a confirmation link.");
+      }
       return;
     }
 
