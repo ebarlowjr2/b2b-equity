@@ -155,6 +155,18 @@ export default function AppPage() {
             >
               View deals
             </a>
+            <a
+              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+              href="/app/cap-table"
+            >
+              Cap table
+            </a>
+            <a
+              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+              href="/app/portfolio"
+            >
+              Helper portfolio
+            </a>
           </div>
         </section>
 
