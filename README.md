@@ -8,6 +8,9 @@ Equity-for-support marketplace + cap table ledger.
 - Expo (mobile)
 - Vercel (web deploy)
 
+## Live Deployment
+- Web: https://b2b-equity.vercel.app/
+
 ## Monorepo Layout
 - `apps/web` — Next.js (App Router)
 - `apps/mobile` — Expo
