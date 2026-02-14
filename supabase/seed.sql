@@ -13,9 +13,9 @@ with
   ),
   inserted_profiles as (
     insert into public.profiles (id, name, role)
-    select founder_id, 'Alex Founder', 'founder' from seed_users
+    select founder_id, 'Alex Founder', 'founder'::public.profile_role from seed_users
     union all
-    select helper_id, 'Taylor Helper', 'helper' from seed_users
+    select helper_id, 'Taylor Helper', 'helper'::public.profile_role from seed_users
     on conflict (id) do nothing
     returning id
   ),
