@@ -75,9 +75,10 @@ export default function DealsPage() {
             <p className="text-sm text-slate-300">No deals yet.</p>
           ) : (
             deals.map((deal) => (
-              <div
+              <a
                 key={deal.id}
-                className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5"
+                href={`/app/deals/${deal.id}`}
+                className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 transition hover:border-slate-600"
               >
                 <div className="text-xs uppercase tracking-[0.2em] text-emerald-400">
                   {deal.status}
@@ -85,7 +86,7 @@ export default function DealsPage() {
                 <div className="mt-2 text-sm text-slate-300">
                   Deal {deal.id.slice(0, 6)} · Business {deal.business_id.slice(0, 6)}
                 </div>
-              </div>
+              </a>
             ))
           )}
         </section>
