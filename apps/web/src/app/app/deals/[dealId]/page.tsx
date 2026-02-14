@@ -40,6 +40,7 @@ export default function DealDetailPage() {
   const [uploading, setUploading] = useState<string | null>(null);
   const [approving, setApproving] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -52,6 +53,7 @@ export default function DealDetailPage() {
         router.replace("/login");
         return;
       }
+      setUserId(sessionData.session.user.id);
 
       const { data: dealRow, error: dealError } = await supabase
         .from("deals")
@@ -253,36 +255,47 @@ export default function DealDetailPage() {
                 </p>
 
                 <div className="mt-4 grid gap-3">
-                  <label className="grid gap-2 text-xs text-slate-400">
-                    Upload evidence (helper only)
-                    <input
-                      type="file"
-                      className="text-sm"
-                      onChange={(event) =>
-                        handleUpload(milestone.id, event.target.files?.[0] ?? null)
-                      }
-                      disabled={uploading === milestone.id}
-                    />
-                  </label>
-                  <textarea
-                    className="min-h-[80px] rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
-                    placeholder="Evidence notes (optional)"
-                    value={notes[milestone.id] ?? ""}
-                    onChange={(event) =>
-                      setNotes((prev) => ({
-                        ...prev,
-                        [milestone.id]: event.target.value,
-                      }))
-                    }
-                  />
+                  {userId === deal.helper_id ? (
+                    <>
+                      <label className="grid gap-2 text-xs text-slate-400">
+                        Upload evidence
+                        <input
+                          type="file"
+                          className="text-sm"
+                          onChange={(event) =>
+                            handleUpload(
+                              milestone.id,
+                              event.target.files?.[0] ?? null
+                            )
+                          }
+                          disabled={uploading === milestone.id}
+                        />
+                      </label>
+                      <textarea
+                        className="min-h-[80px] rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
+                        placeholder="Evidence notes (optional)"
+                        value={notes[milestone.id] ?? ""}
+                        onChange={(event) =>
+                          setNotes((prev) => ({
+                            ...prev,
+                            [milestone.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </>
+                  ) : null}
 
-                  <button
-                    className="w-fit rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
-                    onClick={() => handleApprove(milestone.id)}
-                    disabled={approving === milestone.id}
-                  >
-                    {approving === milestone.id ? "Approving..." : "Approve milestone"}
-                  </button>
+                  {userId === deal.founder_id ? (
+                    <button
+                      className="w-fit rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+                      onClick={() => handleApprove(milestone.id)}
+                      disabled={approving === milestone.id}
+                    >
+                      {approving === milestone.id
+                        ? "Approving..."
+                        : "Approve milestone"}
+                    </button>
+                  ) : null}
 
                   {evidence[milestone.id]?.length ? (
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
