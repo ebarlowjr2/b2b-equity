@@ -10,6 +10,7 @@ type Deal = {
   business_id: string;
   founder_id: string;
   helper_id: string;
+  total_units?: number | null;
 };
 
 type Milestone = {
@@ -46,6 +47,8 @@ export default function DealDetailPage() {
   const [reviewText, setReviewText] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [existingReviewId, setExistingReviewId] = useState<string | null>(null);
+  const [ledgerTotal, setLedgerTotal] = useState<number>(0);
+  const [totalUnits, setTotalUnits] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -135,6 +138,27 @@ export default function DealDetailPage() {
           .eq("deal_id", dealId)
           .eq("reviewer_id", sessionData.session.user.id);
         setExistingReviewId(reviewRows?.[0]?.id ?? null);
+      }
+
+      if (dealRow) {
+        const { data: capRows } = await supabase
+          .from("cap_table_view")
+          .select("units_sum")
+          .eq("business_id", dealRow.business_id);
+
+        const total = (capRows ?? []).reduce(
+          (sum, row) => sum + Number(row.units_sum),
+          0
+        );
+        setLedgerTotal(total);
+
+        const { data: settingsRow } = await supabase
+          .from("business_equity_settings")
+          .select("total_units")
+          .eq("business_id", dealRow.business_id)
+          .maybeSingle();
+
+        setTotalUnits(settingsRow?.total_units ?? null);
       }
 
       setDeal(dealRow);
@@ -341,17 +365,42 @@ export default function DealDetailPage() {
                     </>
                   ) : null}
 
-                  {userId === deal.founder_id ? (
-                    <button
-                      className="w-fit rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
-                      onClick={() => handleApprove(milestone.id)}
-                      disabled={approving === milestone.id}
-                    >
-                      {approving === milestone.id
-                        ? "Approving..."
-                        : "Approve milestone"}
-                    </button>
-                  ) : null}
+                {userId === deal.founder_id ? (
+                  <button
+                    className="w-fit rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+                    onClick={() => handleApprove(milestone.id)}
+                    disabled={approving === milestone.id}
+                  >
+                    {approving === milestone.id
+                      ? "Approving..."
+                      : "Approve milestone"}
+                  </button>
+                ) : null}
+
+                {userId === deal.founder_id ? (
+                  <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-slate-300">
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                      Equity Grant Preview
+                    </div>
+                    <div className="mt-2">
+                      Granting {milestone.equity_grant_units} units.
+                    </div>
+                    <div className="mt-1">
+                      Current issued units: {ledgerTotal} · After approval:{" "}
+                      {ledgerTotal + milestone.equity_grant_units}
+                    </div>
+                    <div className="mt-1">
+                      Ownership impact:{" "}
+                      {totalUnits
+                        ? (
+                            (milestone.equity_grant_units / totalUnits) *
+                            100
+                          ).toFixed(2)
+                        : "n/a"}
+                      %
+                    </div>
+                  </div>
+                ) : null}
 
                   {evidence[milestone.id]?.length ? (
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
