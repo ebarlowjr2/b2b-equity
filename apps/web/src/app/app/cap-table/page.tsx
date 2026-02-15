@@ -9,11 +9,10 @@ type Business = {
   name: string;
 };
 
-type LedgerRow = {
-  id: string;
+type CapTableRow = {
   business_id: string;
-  recipient_user_id: string;
-  units: number;
+  holder_user_id: string;
+  units_sum: number;
 };
 
 type EquitySetting = {
@@ -31,7 +30,7 @@ export default function CapTablePage() {
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [selectedBusinessId, setSelectedBusinessId] = useState("");
-  const [ledger, setLedger] = useState<LedgerRow[]>([]);
+  const [capRows, setCapRows] = useState<CapTableRow[]>([]);
   const [settings, setSettings] = useState<EquitySetting | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,9 +74,9 @@ export default function CapTablePage() {
     let active = true;
 
     const loadLedger = async () => {
-      const { data: ledgerRows, error: ledgerError } = await supabase
-        .from("equity_ledger_entries")
-        .select("id, business_id, recipient_user_id, units")
+      const { data: capTableRows, error: ledgerError } = await supabase
+        .from("cap_table_view")
+        .select("business_id, holder_user_id, units_sum")
         .eq("business_id", selectedBusinessId);
 
       if (!active) return;
@@ -96,7 +95,7 @@ export default function CapTablePage() {
         setError(settingsError.message);
       }
 
-      setLedger(ledgerRows ?? []);
+      setCapRows(capTableRows ?? []);
       setSettings(settingsRow ?? null);
     };
 
@@ -108,22 +107,14 @@ export default function CapTablePage() {
   }, [selectedBusinessId]);
 
   const totals = useMemo(() => {
-    const byRecipient: Record<string, number> = {};
-    ledger.forEach((row) => {
-      byRecipient[row.recipient_user_id] =
-        (byRecipient[row.recipient_user_id] ?? 0) + Number(row.units);
-    });
-
-    const holders: HolderSummary[] = Object.entries(byRecipient).map(
-      ([recipient_user_id, units]) => ({
-        recipient_user_id,
-        units,
-      })
-    );
+    const holders: HolderSummary[] = capRows.map((row) => ({
+      recipient_user_id: row.holder_user_id,
+      units: Number(row.units_sum),
+    }));
 
     const totalUnits = settings?.total_units ?? 0;
     return { holders, totalUnits };
-  }, [ledger, settings]);
+  }, [capRows, settings]);
 
   if (loading) {
     return (
