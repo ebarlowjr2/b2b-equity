@@ -167,6 +167,12 @@ export default function AppPage() {
             >
               Helper portfolio
             </a>
+            <a
+              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+              href="/app/notifications"
+            >
+              Notifications
+            </a>
           </div>
         </section>
 
