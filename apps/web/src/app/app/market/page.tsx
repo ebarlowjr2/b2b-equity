@@ -35,6 +35,7 @@ export default function MarketPage() {
       const { data: postRows, error: postError } = await supabase
         .from("problem_posts")
         .select("id, title, category, description, equity_min, equity_max, status")
+        .in("status", ["open", "in_review"])
         .order("created_at", { ascending: false });
 
       if (!active) return;

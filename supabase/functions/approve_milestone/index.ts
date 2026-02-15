@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     const { data: milestone, error: milestoneError } = await admin
       .from("deal_milestones")
       .select(
-        "id, deal_id, equity_grant_units, status, deals!inner(id, founder_id, helper_id, business_id)"
+        "id, deal_id, equity_grant_units, status, deals!inner(id, founder_id, helper_id, business_id, post_id)"
       )
       .eq("id", milestoneId)
       .single();
@@ -79,6 +79,30 @@ Deno.serve(async (req) => {
 
     if (ledgerError) {
       return new Response(ledgerError.message, { status: 400 });
+    }
+
+    const { data: remainingMilestones, error: remainingError } = await admin
+      .from("deal_milestones")
+      .select("id")
+      .eq("deal_id", milestone.deal_id)
+      .neq("status", "approved");
+
+    if (remainingError) {
+      return new Response(remainingError.message, { status: 400 });
+    }
+
+    if ((remainingMilestones ?? []).length === 0) {
+      await admin
+        .from("deals")
+        .update({ status: "completed" })
+        .eq("id", milestone.deal_id);
+
+      if (milestone.deals.post_id) {
+        await admin
+          .from("problem_posts")
+          .update({ status: "closed" })
+          .eq("id", milestone.deals.post_id);
+      }
     }
 
     return new Response(

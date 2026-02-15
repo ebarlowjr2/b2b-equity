@@ -14,6 +14,11 @@ type Post = {
   status: string;
 };
 
+type Proposal = {
+  id: string;
+  status: string;
+};
+
 export default function MarketPostPage() {
   const router = useRouter();
   const params = useParams();
@@ -25,6 +30,7 @@ export default function MarketPostPage() {
   const [equityAsk, setEquityAsk] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -52,6 +58,17 @@ export default function MarketPostPage() {
         setError(postError.message);
       } else {
         setPost(postData);
+      }
+
+      if (sessionData.session) {
+        const { data: proposalRows } = await supabase
+          .from("proposals")
+          .select("id, status")
+          .eq("post_id", postId)
+          .eq("proposed_by", sessionData.session.user.id)
+          .order("created_at", { ascending: false });
+
+        setProposal(proposalRows?.[0] ?? null);
       }
 
       setLoading(false);
@@ -93,6 +110,26 @@ export default function MarketPostPage() {
     }
 
     router.push("/app/deals");
+  };
+
+  const handleWithdraw = async () => {
+    if (!proposal) return;
+    setError(null);
+    setSaving(true);
+
+    const { error: updateError } = await supabase
+      .from("proposals")
+      .update({ status: "withdrawn" })
+      .eq("id", proposal.id);
+
+    setSaving(false);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    setProposal({ ...proposal, status: "withdrawn" });
   };
 
   if (loading) {
@@ -138,51 +175,71 @@ export default function MarketPostPage() {
           ) : null}
         </section>
 
-        <form
-          className="grid gap-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-6"
-          onSubmit={handleSubmit}
-        >
-          <label className="grid gap-2 text-sm">
-            Deliverables
-            <textarea
-              className="min-h-[120px] rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
-              value={deliverables}
-              onChange={(event) => setDeliverables(event.target.value)}
-            />
-          </label>
-          <label className="grid gap-2 text-sm">
-            Timeline (days)
-            <input
-              className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
-              value={timelineDays}
-              onChange={(event) => setTimelineDays(event.target.value)}
-              inputMode="numeric"
-            />
-          </label>
-          <label className="grid gap-2 text-sm">
-            Equity ask (units or %)
-            <input
-              className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
-              value={equityAsk}
-              onChange={(event) => setEquityAsk(event.target.value)}
-              inputMode="decimal"
-            />
-          </label>
-
-          {error ? (
-            <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">
-              {error}
-            </p>
-          ) : null}
-
-          <button
-            className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950"
-            type="submit"
-            disabled={saving}
+        {proposal && proposal.status !== "withdrawn" ? (
+          <section className="grid gap-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+            <div className="text-sm text-slate-300">
+              Proposal status: {proposal.status}
+            </div>
+            <button
+              className="w-fit rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+              onClick={handleWithdraw}
+              disabled={saving}
+            >
+              {saving ? "Withdrawing..." : "Withdraw proposal"}
+            </button>
+            {error ? (
+              <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">
+                {error}
+              </p>
+            ) : null}
+          </section>
+        ) : (
+          <form
+            className="grid gap-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-6"
+            onSubmit={handleSubmit}
           >
-            {saving ? "Submitting..." : "Submit proposal"}
-          </button>
-        </form>
+            <label className="grid gap-2 text-sm">
+              Deliverables
+              <textarea
+                className="min-h-[120px] rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
+                value={deliverables}
+                onChange={(event) => setDeliverables(event.target.value)}
+              />
+            </label>
+            <label className="grid gap-2 text-sm">
+              Timeline (days)
+              <input
+                className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
+                value={timelineDays}
+                onChange={(event) => setTimelineDays(event.target.value)}
+                inputMode="numeric"
+              />
+            </label>
+            <label className="grid gap-2 text-sm">
+              Equity ask (units or %)
+              <input
+                className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
+                value={equityAsk}
+                onChange={(event) => setEquityAsk(event.target.value)}
+                inputMode="decimal"
+              />
+            </label>
+
+            {error ? (
+              <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">
+                {error}
+              </p>
+            ) : null}
+
+            <button
+              className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950"
+              type="submit"
+              disabled={saving}
+            >
+              {saving ? "Submitting..." : "Submit proposal"}
+            </button>
+          </form>
+        )}
       </div>
     </main>
   );

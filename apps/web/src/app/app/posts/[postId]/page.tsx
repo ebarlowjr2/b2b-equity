@@ -129,11 +129,34 @@ export default function PostDetailPage() {
 
     await supabase
       .from("problem_posts")
-      .update({ status: "closed" })
+      .update({ status: "matched" })
       .eq("id", post.id);
 
     setProcessing(null);
     router.push("/app");
+  };
+
+  const handleReject = async (proposal: Proposal) => {
+    setError(null);
+    setProcessing(proposal.id);
+
+    const { error: rejectError } = await supabase
+      .from("proposals")
+      .update({ status: "rejected" })
+      .eq("id", proposal.id);
+
+    setProcessing(null);
+
+    if (rejectError) {
+      setError(rejectError.message);
+      return;
+    }
+
+    setProposals((prev) =>
+      prev.map((item) =>
+        item.id === proposal.id ? { ...item, status: "rejected" } : item
+      )
+    );
   };
 
   if (loading) {
@@ -211,13 +234,20 @@ export default function PostDetailPage() {
                     Timeline: {proposal.timeline_days ?? "n/a"} days · Equity ask:{" "}
                     {proposal.equity_ask ?? "n/a"}
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-4 flex flex-wrap gap-3">
                     <button
                       className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950"
                       onClick={() => handleAccept(proposal)}
                       disabled={processing === proposal.id}
                     >
                       {processing === proposal.id ? "Accepting..." : "Accept proposal"}
+                    </button>
+                    <button
+                      className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+                      onClick={() => handleReject(proposal)}
+                      disabled={processing === proposal.id}
+                    >
+                      {processing === proposal.id ? "Rejecting..." : "Reject"}
                     </button>
                   </div>
                 </div>
