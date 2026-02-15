@@ -42,6 +42,10 @@ export default function DealDetailPage() {
   const [approving, setApproving] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [userId, setUserId] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [existingReviewId, setExistingReviewId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -122,6 +126,15 @@ export default function DealDetailPage() {
           grouped[row.milestone_id] = [];
         }
         grouped[row.milestone_id].push(row);
+      }
+
+      if (sessionData.session) {
+        const { data: reviewRows } = await supabase
+          .from("reviews")
+          .select("id")
+          .eq("deal_id", dealId)
+          .eq("reviewer_id", sessionData.session.user.id);
+        setExistingReviewId(reviewRows?.[0]?.id ?? null);
       }
 
       setDeal(dealRow);
@@ -209,6 +222,30 @@ export default function DealDetailPage() {
 
     router.refresh();
     setApproving(null);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!deal || !userId) return;
+    setError(null);
+    setReviewSubmitting(true);
+
+    const revieweeId = userId === deal.founder_id ? deal.helper_id : deal.founder_id;
+    const { error: insertError } = await supabase.from("reviews").insert({
+      reviewer_id: userId,
+      reviewee_id: revieweeId,
+      deal_id: deal.id,
+      rating: reviewRating,
+      text: reviewText.trim() || null,
+    });
+
+    setReviewSubmitting(false);
+
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+
+    setExistingReviewId("submitted");
   };
 
   if (loading) {
@@ -347,6 +384,60 @@ export default function DealDetailPage() {
             ))
           )}
         </section>
+
+        {deal.status === "completed" && !existingReviewId ? (
+          <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+            <h2 className="text-lg font-semibold">Leave a review</h2>
+            <div className="mt-4 grid gap-3">
+              <label className="grid gap-2 text-sm">
+                Rating (1-5)
+                <input
+                  type="number"
+                  min={1}
+                  max={5}
+                  className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
+                  value={reviewRating}
+                  onChange={(event) => setReviewRating(Number(event.target.value))}
+                />
+              </label>
+              <label className="grid gap-2 text-sm">
+                Notes
+                <textarea
+                  className="min-h-[100px] rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm"
+                  value={reviewText}
+                  onChange={(event) => setReviewText(event.target.value)}
+                />
+              </label>
+              <button
+                className="w-fit rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950"
+                onClick={handleSubmitReview}
+                disabled={reviewSubmitting}
+              >
+                {reviewSubmitting ? "Submitting..." : "Submit review"}
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {deal ? (
+          <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+            <h2 className="text-lg font-semibold">Trust & profiles</h2>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+                href={`/app/helpers/${deal.helper_id}`}
+              >
+                Helper profile
+              </a>
+              <a
+                className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100"
+                href={`/app/businesses/${deal.business_id}`}
+              >
+                Business page
+              </a>
+            </div>
+          </section>
+        ) : null}
 
         {error ? (
           <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">

@@ -189,9 +189,10 @@ export default function AppPage() {
                 </p>
               ) : (
                 businesses.map((business) => (
-                  <div
+                  <a
                     key={business.id}
-                    className="rounded-xl border border-slate-800 bg-slate-950 p-4"
+                    href={`/app/businesses/${business.id}`}
+                    className="rounded-xl border border-slate-800 bg-slate-950 p-4 transition hover:border-slate-600"
                   >
                     <div className="text-sm font-semibold">{business.name}</div>
                     {business.description ? (
@@ -199,7 +200,7 @@ export default function AppPage() {
                         {business.description}
                       </p>
                     ) : null}
-                  </div>
+                  </a>
                 ))
               )}
             </div>
