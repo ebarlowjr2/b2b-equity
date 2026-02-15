@@ -26,6 +26,7 @@ type Evidence = {
   evidence_url: string | null;
   notes: string | null;
   created_at: string;
+  link_url?: string | null;
 };
 
 export default function DealDetailPage() {
@@ -93,6 +94,28 @@ export default function DealDetailPage() {
         evidenceRows = evidenceData ?? [];
       }
 
+      if (evidenceRows.length > 0) {
+        const signed = await Promise.all(
+          evidenceRows.map(async (row) => {
+            if (!row.evidence_url) {
+              return row;
+            }
+            if (row.evidence_url.startsWith("http")) {
+              return { ...row, link_url: row.evidence_url };
+            }
+            const { data: signedUrl, error: signedError } = await supabase.storage
+              .from("milestone-evidence")
+              .createSignedUrl(row.evidence_url, 60 * 60);
+            if (signedError) {
+              setError(signedError.message);
+              return row;
+            }
+            return { ...row, link_url: signedUrl.signedUrl };
+          })
+        );
+        evidenceRows = signed;
+      }
+
       const grouped: Record<string, Evidence[]> = {};
       for (const row of evidenceRows) {
         if (!grouped[row.milestone_id]) {
@@ -138,14 +161,10 @@ export default function DealDetailPage() {
       return;
     }
 
-    const { data: publicUrl } = supabase.storage
-      .from("milestone-evidence")
-      .getPublicUrl(filePath);
-
     const { error: insertError } = await supabase.from("milestone_evidence").insert({
       milestone_id: milestoneId,
       submitted_by: session.user.id,
-      evidence_url: publicUrl.publicUrl,
+      evidence_url: filePath,
       notes: notes[milestoneId]?.trim() || null,
     });
 
@@ -307,11 +326,11 @@ export default function DealDetailPage() {
                           <li key={item.id}>
                             <a
                               className="text-emerald-300 hover:text-emerald-200"
-                              href={item.evidence_url ?? "#"}
+                              href={item.link_url ?? item.evidence_url ?? "#"}
                               target="_blank"
                               rel="noreferrer"
                             >
-                              {item.evidence_url ?? "Evidence link"}
+                              {item.link_url ?? item.evidence_url ?? "Evidence link"}
                             </a>
                             {item.notes ? (
                               <p className="mt-1 text-xs text-slate-400">
