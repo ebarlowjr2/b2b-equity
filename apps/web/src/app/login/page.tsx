@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -42,14 +43,14 @@ export default function LoginPage() {
     if (mode === "signup") {
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData.session) {
-        router.push("/onboarding");
+        router.push(searchParams.get("redirect") ?? "/onboarding");
       } else {
         setMessage("Check your email for a confirmation link.");
       }
       return;
     }
 
-    router.push("/app");
+    router.push(searchParams.get("redirect") ?? "/app");
   };
 
   return (
